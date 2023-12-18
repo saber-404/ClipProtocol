@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"strings"
 	"testing"
 	"time"
 )
@@ -45,8 +47,23 @@ func Test_checkPacket(t *testing.T) {
 }
 
 func Test_main(t *testing.T) {
-	data := "2pc0"
-	fmt.Println(hex.EncodeToString([]byte(data)))
+	/*	data := "2pc0"
+		fmt.Println(hex.EncodeToString([]byte(data)))*/
+	//fmt.Println(10 / 3)
+	//fmt.Println(10 % 2)
+	//
+	//a, b := 10, 3
+	//result := a / b
+	//ceilResult := math.Ceil(float64(result))
+	//
+	//fmt.Printf("a / b = %d\n", result)
+	//fmt.Printf("a / b 的向上取整结果 = %.2f\n", ceilResult)
+
+	m := make(map[int]string, 9)
+	m[1] = "z"
+	m[5] = "b"
+	m[1] = "d"
+	fmt.Println(len(m))
 }
 
 func Test_getPacketData(t *testing.T) {
@@ -98,4 +115,61 @@ func Test_genDataPacket(t *testing.T) {
 	packetType, ret := c.checkPacket(i)
 	fmt.Println(packetType, ret)
 	fmt.Println(hex.EncodeToString(i))
+}
+
+func Test_genPacketSliceFromString(t *testing.T) {
+	strData := strings.Repeat("2pc0", 500)
+	var c ClipProtocolPacket
+	var packetID = uint64(time.Now().Unix())
+	packets, err := c.genPacketSliceFromString(packetID, strData)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, p := range packets {
+		packetID, err := c.getPacketID(p)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		packetNum, packetCount, err := c.getPacketNumAndCount(p)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Printf("PacketID: %d, PacketNum: %d, PacketCount: %d\n", packetID, packetNum, packetCount)
+	}
+}
+
+func randString(MetaString string, length int) string {
+	bytes := []byte(MetaString)
+	var result []byte
+	for i := 0; i < length; i++ {
+		rand.Seed(time.Now().UnixNano() + int64(rand.Intn(100)))
+		result = append(result, bytes[rand.Intn(len(bytes))])
+	}
+	return string(result)
+}
+
+func RandomAlphaString(length int) string {
+	MetaString := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	return randString(MetaString, length)
+}
+
+func Test_genStringFromPacketSlice(t *testing.T) {
+	strData := RandomAlphaString(2000)
+	var c ClipProtocolPacket
+	var packetID = uint64(time.Now().Unix())
+	packets, _ := c.genPacketSliceFromString(packetID, strData)
+	str, err := c.genStringFromPacketSlice(packets)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if str == strData {
+		fmt.Println("OK")
+	} else {
+		fmt.Println("FAIL")
+	}
+	return
 }

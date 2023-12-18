@@ -18,6 +18,8 @@ const (
 	StopCmdFlag                          uint16 = 1
 )
 
+type Packet []byte
+
 type ClipProtocolPacket struct {
 	ProtocolName uint32 // 协议名 4字节   "2pc0" 0x32706330 846226224
 	PacketID     uint64 // 发送数据时间戳 8字节
@@ -115,7 +117,7 @@ func (cpp *ClipProtocolPacket) getPacketID(packet []byte) (packetID uint64, err 
 }
 
 //获取数据包 次序 总数
-func (cpp *ClipProtocolPacket) getPacketCount(packet []byte) (packetNum, packetCount uint64, err error) {
+func (cpp *ClipProtocolPacket) getPacketNumAndCount(packet []byte) (packetNum, packetCount uint64, err error) {
 	_, ret := cpp.checkPacket(packet)
 	if !ret {
 		return 0, 0, errors.New("packet is error")
@@ -175,4 +177,76 @@ func (cpp *ClipProtocolPacket) genDataPacket(packetID, PacketNum, PacketCount ui
 	err = nil
 	packet = p.Bytes()
 	return
+}
+
+//从字符串生成数据包切片[]Packet
+func (cpp *ClipProtocolPacket) genPacketSliceFromString(packetID uint64, strData string) (packetSlice []Packet, err error) {
+	//	字符串转[]byte
+	data := []byte(strData)
+	l := uint64(len(data))
+	//	计算出PacketNum PacketCount
+	PacketCount := l / MaxClipProtocolPacketDataSize
+	if l%MaxClipProtocolPacketDataSize != 0 {
+		PacketCount += 1
+	}
+	var (
+		i uint64
+	)
+	for i = 0; i < l; i += MaxClipProtocolPacketDataSize {
+		var p Packet
+		if i+MaxClipProtocolPacketDataSize < l {
+			err, p = cpp.genDataPacket(packetID, i/MaxClipProtocolPacketDataSize, PacketCount, DataPacketFlag, data[i:i+MaxClipProtocolPacketDataSize])
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err, p = cpp.genDataPacket(packetID, i/MaxClipProtocolPacketDataSize, PacketCount, DataPacketFlag, data[i:])
+			if err != nil {
+				return nil, err
+			}
+		}
+		packetSlice = append(packetSlice, p)
+	}
+	return
+}
+
+//从[]Packet生成字符串
+func (cpp *ClipProtocolPacket) genStringFromPacketSlice(packetSlice []Packet) (strData string, err error) {
+	var (
+		byteOfStr     []byte
+		FirstPacketID uint64
+	)
+	FirstPacketID, err = cpp.getPacketID(packetSlice[0])
+	l := uint64(len(packetSlice))
+	for i, packet := range packetSlice {
+		var (
+			PacketID    uint64
+			PacketData  []byte
+			PacketNum   uint64
+			PacketCount uint64
+		)
+		PacketID, err = cpp.getPacketID(packet)
+		if err != nil {
+			return "", err
+		}
+		if FirstPacketID != PacketID {
+			return "", errors.New("the packetSlice has different PacketID")
+		}
+		PacketNum, PacketCount, err = cpp.getPacketNumAndCount(packet)
+		if err != nil {
+			return "", err
+		}
+		if uint64(i) != PacketNum {
+			return "", errors.New("the packetSlice order is wrong")
+		}
+		if l != PacketCount {
+			return "", errors.New("the packetSlice length is wrong")
+		}
+		PacketData, err = cpp.getPacketData(packet)
+		if err != nil {
+			return "", err
+		}
+		byteOfStr = append(byteOfStr, PacketData...)
+	}
+	return string(byteOfStr), nil
 }
