@@ -11,6 +11,10 @@ type ClipProtocolClient struct {
 	CPP ClipProtocolPacket
 }
 
+func NewClient() *ClipProtocolClient {
+	return &ClipProtocolClient{}
+}
+
 func (cpc *ClipProtocolClient) SendData(port int, data string) {
 	address := fmt.Sprintf("255.255.255.255:%d", port)
 	conn, err := net.Dial("udp", address)

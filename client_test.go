@@ -11,6 +11,11 @@ func TestSendStopCmd(t *testing.T) {
 
 func TestSendData(t *testing.T) {
 	var cpc ClipProtocolClient
-	//data := RandomAlphaString(99)
-	cpc.SendData(9000, "data")
+	data := RandomAlphaString(20)
+	cpc.SendData(9000, data)
+}
+
+func TestNewClient(t *testing.T) {
+	NewClient().SendData(9000, "test")
+	NewClient().SendStopCmd(9000)
 }
