@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -63,11 +64,44 @@ func Test_main(t *testing.T) {
 	//fmt.Printf("a / b = %d\n", result)
 	//fmt.Printf("a / b 的向上取整结果 = %.2f\n", ceilResult)
 
-	m := make(map[int]string, 9)
-	m[1] = "z"
-	m[5] = "b"
-	m[1] = "d"
-	fmt.Println(len(m))
+	//m := make(map[int]string, 9)
+	//m[1] = "z"
+	//m[5] = "b"
+	//m[1] = "d"
+	//fmt.Println(len(m))
+	// 获取本机的IP地址
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Println("获取IP地址失败:", err)
+		return
+	}
+
+	// 遍历所有IP地址
+	for _, addr := range addrs {
+		// 检查IP地址是否是IPv4或IPv6
+		ip, ok := addr.(*net.IPNet)
+		if ok && !ip.IP.IsLoopback() {
+			if ip.IP.To4() != nil {
+				// 打印IPv4地址
+				fmt.Println("IP地址:", ip.IP)
+				// 获取广播地址
+				broadcast := getBroadcastAddress(ip)
+				fmt.Println("广播地址:", broadcast)
+			}
+		}
+	}
+}
+
+// 获取广播地址
+func getBroadcastAddress(ip *net.IPNet) net.IP {
+	// 将IP地址转换为4字节表示
+	ip = &net.IPNet{IP: ip.IP.To4(), Mask: ip.Mask}
+	// 计算广播地址
+	broadcast := make(net.IP, len(ip.IP))
+	for i, b := range ip.IP {
+		broadcast[i] = b | ^ip.Mask[i]
+	}
+	return broadcast
 }
 
 func Test_getPacketData(t *testing.T) {
@@ -152,11 +186,11 @@ func Test_genPacketSliceFromString(t *testing.T) {
 }
 
 func randString(MetaString string, length int) string {
-	bytes := []byte(MetaString)
+	byteofstr := []byte(MetaString)
 	var result []byte
 	for i := 0; i < length; i++ {
 		rand.Seed(time.Now().UnixNano() + int64(rand.Intn(100)))
-		result = append(result, bytes[rand.Intn(len(bytes))])
+		result = append(result, byteofstr[rand.Intn(len(byteofstr))])
 	}
 	return string(result)
 }

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestClipProtocolServer_StartServer(t *testing.T) {
+func TestStartServer(t *testing.T) {
 	server := NewServer("0.0.0.0:9000")
 	server.Run(HandlerFunc)
 }
