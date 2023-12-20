@@ -12,8 +12,8 @@ const (
 )
 
 type ProtocolServer struct {
-	Conn          *net.UDPConn
-	ClientAddr    *net.UDPAddr
+	Conn *net.UDPConn
+	//ClientAddr    *net.UDPAddr //todo Beta
 	CPP           ProtocolPacket
 	DataMap       map[uint64]*HandlerData
 	quit          chan int
@@ -69,6 +69,7 @@ func (CPS *ProtocolServer) HandlerDataPacket(packet Packet) {
 		return
 	}
 	if Flag == StopCmdPacketFlag { //处理终止命令包
+		//CPS.replyClient(packetID) //todo Beta
 		CPS.quit <- 1
 		return
 	}
@@ -95,8 +96,7 @@ func (CPS *ProtocolServer) HandlerDataPacket(packet Packet) {
 		CPS.dataTransOver <- 1
 		CPS.Result = str
 		delete(CPS.DataMap, packetID)
-		//todo 回复客户端
-		//CPS.replyClient(packetID)
+		//CPS.replyClient(packetID) //todo Beta
 	}
 
 }
@@ -104,7 +104,8 @@ func (CPS *ProtocolServer) HandlerDataPacket(packet Packet) {
 func (CPS *ProtocolServer) run() {
 	buf := make([]byte, MaxClipProtocolPacketSize)
 	n, addr, err := CPS.Conn.ReadFromUDP(buf)
-	CPS.ClientAddr = addr
+	fmt.Println(addr) //todo Beta
+	//CPS.ClientAddr = addr //todo Beta
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -121,24 +122,30 @@ func (CPS *ProtocolServer) clearMem(timeout time.Duration) {
 			if len(CPS.DataMap) == 0 {
 				continue
 			}
-			fmt.Println("清理前", len(CPS.DataMap))
+			//fmt.Println("清理前", len(CPS.DataMap))
 			OldPacketID := uint64(time.Now().Add(timeout).Unix())
 			for packetID := range CPS.DataMap {
 				if packetID < OldPacketID {
 					delete(CPS.DataMap, packetID)
 				}
 			}
-			fmt.Println("清理后", len(CPS.DataMap))
+			//fmt.Println("清理后", len(CPS.DataMap))
 		}
 	}
 }
 
 //回复客户端消息
+//todo Beta
 //func (CPS *ProtocolServer) replyClient(packetID uint64) {
 //	err, p := CPS.CPP.genReplyClientMessagePacket(packetID)
 //	if err != nil {
 //		return
 //	}
+//	fmt.Println(CPS.ClientAddr.String())
 //	n, err := CPS.Conn.WriteToUDP(p, CPS.ClientAddr)
-//	fmt.Println("回复客户端消息", n, err)
+//	if err != nil {
+//		fmt.Println(err)
+//		return
+//	}
+//	fmt.Println("回复客户端消息", n)
 //}
