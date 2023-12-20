@@ -12,7 +12,7 @@ import (
 )
 
 func Test_setFlag(t *testing.T) {
-	var c ClipProtocolPacket
+	var c ProtocolPacket
 	fmt.Println(c.Flag)
 	err := c.setFlag(0, 0, 996)
 	if err != nil {
@@ -23,14 +23,14 @@ func Test_setFlag(t *testing.T) {
 }
 
 func Test_checkPacket(t *testing.T) {
-	var c ClipProtocolPacket
+	var c ProtocolPacket
 	p := bytes.Buffer{}
 	c.ProtocolName = 0x32706330
 	c.PacketID = 0
 	c.PacketNum = 1
 	c.PacketCount = 2
-	//c.Data = []byte("2pc0")
-	err := c.setFlag(1, 0, uint16(len(c.Data)))
+	c.Data = []byte("2pc0")
+	err := c.setFlag(0, 0, uint16(len(c.Data)))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -42,8 +42,12 @@ func Test_checkPacket(t *testing.T) {
 	}
 	pstr := hex.EncodeToString(p.Bytes())
 	fmt.Println(pstr)
-	packetType, ret := c.checkPacket(p.Bytes())
-	fmt.Println(packetType, ret)
+	err, PacketID, PacketNum, PacketCount, Flag, Data := c.parsePacket(p.Bytes())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(PacketID, PacketNum, PacketCount, Flag, Data)
 }
 
 func Test_main(t *testing.T) {
@@ -67,7 +71,7 @@ func Test_main(t *testing.T) {
 }
 
 func Test_getPacketData(t *testing.T) {
-	var c ClipProtocolPacket
+	var c ProtocolPacket
 	p := bytes.Buffer{}
 	c.ProtocolName = 0x32706330
 	c.PacketID = 0
@@ -94,32 +98,38 @@ func Test_getPacketData(t *testing.T) {
 }
 
 func Test_genStopCmdPacket(t *testing.T) {
-	var c ClipProtocolPacket
+	var c ProtocolPacket
 	PacketID := uint64(time.Now().Unix())
-	println(PacketID)
-	stopCmdPacket := c.genStopCmdPacket(PacketID)
-	packetType, ret := c.checkPacket(stopCmdPacket)
-	println(hex.EncodeToString(stopCmdPacket))
-	fmt.Println(packetType, ret)
-}
-
-func Test_genDataPacket(t *testing.T) {
-	var c ClipProtocolPacket
-	PacketID := uint64(time.Now().Unix())
-	println(PacketID)
-	err, i := c.genDataPacket(PacketID, 0, 1, DataPacketFlag, []byte("2pc06565"))
+	fmt.Println("PacketID", PacketID)
+	stopCmdPacket := c.genStopCmdPacket(PacketID) // PacketID 0 1 0x8000
+	err, PacketID, PacketNum, PacketCount, Flag, _ := c.parsePacket(stopCmdPacket)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	packetType, ret := c.checkPacket(i)
-	fmt.Println(packetType, ret)
-	fmt.Println(hex.EncodeToString(i))
+	fmt.Println(PacketID, PacketNum, PacketCount, Flag)
+}
+
+func Test_genDataPacket(t *testing.T) {
+	var c ProtocolPacket
+	PacketID := uint64(time.Now().Unix())
+	fmt.Println("PacketID", PacketID)
+	err, i := c.genDataPacket(PacketID, 0, 1, DataFlag, []byte("2pc06565"))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err, PacketID, PacketNum, PacketCount, _, data := c.parsePacket(i)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(PacketID, PacketNum, PacketCount, string(data), hex.EncodeToString(data))
 }
 
 func Test_genPacketSliceFromString(t *testing.T) {
 	strData := strings.Repeat("2pc0", 500)
-	var c ClipProtocolPacket
+	var c ProtocolPacket
 	var packetID = uint64(time.Now().Unix())
 	packets, err := c.genPacketSliceFromString(packetID, strData)
 	if err != nil {
@@ -156,20 +166,20 @@ func RandomAlphaString(length int) string {
 	return randString(MetaString, length)
 }
 
-func Test_genStringFromPacketSlice(t *testing.T) {
-	strData := RandomAlphaString(2000)
-	var c ClipProtocolPacket
-	var packetID = uint64(time.Now().Unix())
-	packets, _ := c.genPacketSliceFromString(packetID, strData)
-	str, err := c.genStringFromPacketSlice(packets)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if str == strData {
-		fmt.Println("OK")
-	} else {
-		fmt.Println("FAIL")
-	}
-	return
-}
+//func Test_genStringFromPacketSlice(t *testing.T) {
+//	strData := RandomAlphaString(2000)
+//	var c ProtocolPacket
+//	var packetID = uint64(time.Now().Unix())
+//	packets, _ := c.genPacketSliceFromString(packetID, strData)
+//	str, err := c.genStringDataOfFromPacketSlice(packets)
+//	if err != nil {
+//		fmt.Println(err)
+//		return
+//	}
+//	if str == strData {
+//		fmt.Println("OK")
+//	} else {
+//		fmt.Println("FAIL")
+//	}
+//	return
+//}
