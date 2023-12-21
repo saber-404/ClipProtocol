@@ -11,5 +11,5 @@ func TestStartServer(t *testing.T) {
 }
 
 func HandlerFunc(str string) {
-	fmt.Println(str)
+	fmt.Println("1:  ", str)
 }

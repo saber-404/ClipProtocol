@@ -122,14 +122,14 @@ func (CPS *ProtocolServer) clearMem(timeout time.Duration) {
 			if len(CPS.DataMap) == 0 {
 				continue
 			}
-			fmt.Println("清理前", len(CPS.DataMap))
+			//fmt.Println("清理前", len(CPS.DataMap))
 			OldPacketID := uint64(time.Now().Add(timeout).Unix())
 			for packetID := range CPS.DataMap {
 				if packetID < OldPacketID {
 					delete(CPS.DataMap, packetID)
 				}
 			}
-			fmt.Println("清理后", len(CPS.DataMap))
+			//fmt.Println("清理后", len(CPS.DataMap))
 		}
 	}
 }
